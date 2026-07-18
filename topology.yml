@@ -4,8 +4,8 @@ hosts:
   - name: attacker
     flavor: standard.small
     base_box:
-      image: kubuntu-noble-x86_64ali-2026.1-x86_64
-      mgmt_user: debian
+      image: ubuntu-noble-x86_64
+      mgmt_user: ubuntu
       mgmt_protocol: ssh
     hidden: false
 
