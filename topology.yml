@@ -70,7 +70,7 @@ networks:
 
 wan:
   name: internet-connection
-  cidr: 10.10.10.0/24
+  cidr: 10.10.99.0/24
 
 net_mappings:
   # attacker — DMZ only
