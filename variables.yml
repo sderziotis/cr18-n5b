@@ -1,1 +1,22 @@
-{}
+# APG variables. See https://docs.platform.cyberrange.cz/user-guide-advanced/sandboxes/apg-variables/
+# N5b — one generated flag per training level (unique per sandbox).
+smb_flag:
+    type: password
+    length: 16
+    prohibited: ['{', '}', '"', "'", ' ', '\\', '/']
+dmz_root_flag:
+    type: password
+    length: 16
+    prohibited: ['{', '}', '"', "'", ' ', '\\', '/']
+pivot_flag:
+    type: password
+    length: 16
+    prohibited: ['{', '}', '"', "'", ' ', '\\', '/']
+nfs_flag:
+    type: password
+    length: 16
+    prohibited: ['{', '}', '"', "'", ' ', '\\', '/']
+mgmt_flag:
+    type: password
+    length: 16
+    prohibited: ['{', '}', '"', "'", ' ', '\\', '/']

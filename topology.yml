@@ -1,26 +1,50 @@
-name: n5b-poc
+name: cr-18-n5b-v1
 hosts:
+  # Attacker — trainee console, DMZ only
   - name: attacker
     flavor: standard.small
     base_box:
-      image: ubuntu-noble-x86_64
-      mgmt_user: ubuntu
+      image: kubuntu-noble-x86_64ali-2026.1-x86_64
+      mgmt_user: debian
       mgmt_protocol: ssh
     hidden: false
-  - name: switchvm
+
+  # DMZ host — dual-homed DMZ + Internal; guest-readable SMB share leaks an SSH key
+  - name: dmzhost
     flavor: standard.small
     base_box:
       image: ubuntu-noble-x86_64
       mgmt_user: ubuntu
       mgmt_protocol: ssh
     hidden: false
-  - name: victim
+
+  # App server — Internal; mounts the misconfigured NFS share (no_root_squash victim)
+  - name: appserver
     flavor: standard.small
     base_box:
       image: ubuntu-noble-x86_64
       mgmt_user: ubuntu
       mgmt_protocol: ssh
-    hidden: false
+    hidden: true
+
+  # NFS server — dual-homed Internal + Management; exports the bad share, bridges to mgmt
+  - name: nfsserver
+    flavor: standard.small
+    base_box:
+      image: ubuntu-noble-x86_64
+      mgmt_user: ubuntu
+      mgmt_protocol: ssh
+    hidden: true
+
+  # Management host — final target; network-service flag
+  - name: mgmthost
+    flavor: standard.small
+    base_box:
+      image: ubuntu-noble-x86_64
+      mgmt_user: ubuntu
+      mgmt_protocol: ssh
+    hidden: true
+
 routers:
   - name: router
     flavor: standard.small
@@ -29,26 +53,66 @@ routers:
       mgmt_user: debian
       mgmt_protocol: ssh
     hidden: false
+
 networks:
-  - name: net-trunk
-    cidr: 172.16.0.0/24
+  - name: dmz
+    cidr: 10.10.10.0/24
     accessible_by_user: true
     hidden: false
+  - name: internal
+    cidr: 10.10.20.0/24
+    accessible_by_user: false
+    hidden: true
+  - name: management
+    cidr: 10.10.30.0/24
+    accessible_by_user: false
+    hidden: true
+
 wan:
   name: internet-connection
   cidr: 10.10.10.0/24
+
 net_mappings:
+  # attacker — DMZ only
   - host: attacker
-    network: net-trunk
-    ip: 172.16.0.10
-  - host: switchvm
-    network: net-trunk
-    ip: 172.16.0.2
-  - host: victim
-    network: net-trunk
-    ip: 172.16.0.20
+    network: dmz
+    ip: 10.10.10.10
+
+  # dmzhost — dual-homed: DMZ + Internal
+  - host: dmzhost
+    network: dmz
+    ip: 10.10.10.2
+  - host: dmzhost
+    network: internal
+    ip: 10.10.20.2
+
+  # appserver — Internal only
+  - host: appserver
+    network: internal
+    ip: 10.10.20.20
+
+  # nfsserver — dual-homed: Internal + Management
+  - host: nfsserver
+    network: internal
+    ip: 10.10.20.30
+  - host: nfsserver
+    network: management
+    ip: 10.10.30.30
+
+  # mgmthost — Management only
+  - host: mgmthost
+    network: management
+    ip: 10.10.30.100
+
 router_mappings:
   - router: router
-    network: net-trunk
-    ip: 172.16.0.1
+    network: dmz
+    ip: 10.10.10.1
+  - router: router
+    network: internal
+    ip: 10.10.20.1
+  - router: router
+    network: management
+    ip: 10.10.30.1
+
 groups: []
