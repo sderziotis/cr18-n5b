@@ -505,6 +505,11 @@
   hosts: attacker
   become: true
   gather_facts: true
+  roles:
+    - role: user-access
+      user_access_username: pentester
+      user_access_password: 'pentester'
+      user_access_sudo: true
   tasks:
     - name: Wait for apt/dpkg lock
       ansible.builtin.shell: >
