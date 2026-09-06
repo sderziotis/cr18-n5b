@@ -57,11 +57,10 @@
         name: smbd
         state: restarted
   tasks:
-    - name: Install Samba, iptables, ssh client
+    - name: Install Samba, ssh client
       ansible.builtin.apt:
         name:
           - samba
-          - iptables
           - openssh-client
         state: present
         update_cache: true
@@ -157,8 +156,44 @@
         state: started
         enabled: true
 
-    # Forwarding is NOT enabled here — the trainee does that as the pivot step.
-    # We only ensure the tooling exists so their commands work.
+    # Pivoting is done via ligolo-ng (application-layer relay), not kernel
+    # IP forwarding — raw forwarding+MASQUERADE was tested and found to be
+    # silently dropped by the platform's Neutron anti-spoofing on the NAT
+    # return path (the un-NAT'd reply carries a source IP the DMZ port never
+    # owns). ligolo-ng avoids this: the agent originates its own outbound
+    # connection to the target using its own legitimate IP, so nothing ever
+    # appears on the wire with a foreign source address.
+    - name: Ensure tar is present (needed to unpack the agent)
+      ansible.builtin.apt:
+        name: tar
+        state: present
+
+    - name: Create ligolo-ng directory
+      ansible.builtin.file:
+        path: /opt/ligolo
+        state: directory
+        mode: '0755'
+
+    - name: Download the ligolo-ng agent (v0.9.1, linux/amd64)
+      ansible.builtin.get_url:
+        url: https://github.com/nicocha30/ligolo-ng/releases/download/v0.9.1/ligolo-ng_agent_0.9.1_linux_amd64.tar.gz
+        dest: /opt/ligolo/agent.tar.gz
+        mode: '0644'
+      register: ligolo_agent_download
+      failed_when: false
+
+    - name: Unpack the agent
+      ansible.builtin.unarchive:
+        src: /opt/ligolo/agent.tar.gz
+        dest: /opt/ligolo
+        remote_src: true
+      when: ligolo_agent_download is succeeded
+
+    - name: Ensure the agent binary is executable
+      ansible.builtin.file:
+        path: /opt/ligolo/agent
+        mode: '0755'
+      failed_when: false
 
     # --- A4: local escalation path (narrow, realistic misconfiguration) -----
     # dmzadmin has NO general sudo. It can run exactly one script as root
@@ -217,11 +252,9 @@
         cmd: exportfs -ra
       changed_when: false
   tasks:
-    - name: Install NFS server + iptables
+    - name: Install NFS server
       ansible.builtin.apt:
-        name:
-          - nfs-kernel-server
-          - iptables
+        name: nfs-kernel-server
         state: present
         update_cache: true
 
@@ -264,6 +297,39 @@
         name: nfs-kernel-server
         state: started
         enabled: true
+
+    # --- second-hop pivot tooling: ligolo-ng agent (Internal -> Management) --
+    - name: Ensure tar is present (needed to unpack the agent)
+      ansible.builtin.apt:
+        name: tar
+        state: present
+
+    - name: Create ligolo-ng directory
+      ansible.builtin.file:
+        path: /opt/ligolo
+        state: directory
+        mode: '0755'
+
+    - name: Download the ligolo-ng agent (v0.9.1, linux/amd64)
+      ansible.builtin.get_url:
+        url: https://github.com/nicocha30/ligolo-ng/releases/download/v0.9.1/ligolo-ng_agent_0.9.1_linux_amd64.tar.gz
+        dest: /opt/ligolo/agent.tar.gz
+        mode: '0644'
+      register: ligolo_agent_download
+      failed_when: false
+
+    - name: Unpack the agent
+      ansible.builtin.unarchive:
+        src: /opt/ligolo/agent.tar.gz
+        dest: /opt/ligolo
+        remote_src: true
+      when: ligolo_agent_download is succeeded
+
+    - name: Ensure the agent binary is executable
+      ansible.builtin.file:
+        path: /opt/ligolo/agent
+        mode: '0755'
+      failed_when: false
 
 
 # ----------------------------------------------------------------------------
@@ -457,8 +523,37 @@
           - openssh-client
           - curl
           - iproute2
+          - tar
         state: present
         update_cache: true
+
+    # --- pivot tooling: ligolo-ng proxy (control console + tun interface) ----
+    - name: Create ligolo-ng directory
+      ansible.builtin.file:
+        path: /opt/ligolo
+        state: directory
+        mode: '0755'
+
+    - name: Download the ligolo-ng proxy (v0.9.1, linux/amd64)
+      ansible.builtin.get_url:
+        url: https://github.com/nicocha30/ligolo-ng/releases/download/v0.9.1/ligolo-ng_proxy_0.9.1_linux_amd64.tar.gz
+        dest: /opt/ligolo/proxy.tar.gz
+        mode: '0644'
+      register: ligolo_proxy_download
+      failed_when: false
+
+    - name: Unpack the proxy
+      ansible.builtin.unarchive:
+        src: /opt/ligolo/proxy.tar.gz
+        dest: /opt/ligolo
+        remote_src: true
+      when: ligolo_proxy_download is succeeded
+
+    - name: Ensure the proxy binary is executable
+      ansible.builtin.file:
+        path: /opt/ligolo/proxy
+        mode: '0755'
+      failed_when: false
 
 
 # ----------------------------------------------------------------------------
