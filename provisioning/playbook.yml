@@ -57,11 +57,12 @@
         name: smbd
         state: restarted
   tasks:
-    - name: Install Samba, ssh client
+    - name: Install Samba, ssh client, NFS client
       ansible.builtin.apt:
         name:
           - samba
           - openssh-client
+          - nfs-common
         state: present
         update_cache: true
 
@@ -252,11 +253,19 @@
         cmd: exportfs -ra
       changed_when: false
   tasks:
-    - name: Install NFS server
+    - name: Install NFS server + cron
       ansible.builtin.apt:
-        name: nfs-kernel-server
+        name:
+          - nfs-kernel-server
+          - cron
         state: present
         update_cache: true
+
+    - name: Ensure cron service is running
+      ansible.builtin.systemd:
+        name: cron
+        state: started
+        enabled: true
 
     - name: Create the exported share
       ansible.builtin.file:
@@ -297,6 +306,34 @@
         name: nfs-kernel-server
         state: started
         enabled: true
+
+    # --- A7 entry mechanism: root cron job executes a script from the share --
+    # This is the realistic completion of the no_root_squash trust abuse:
+    # nfsserver runs routine "sync check" automation as root, reading a
+    # script FROM the share it exports. Because no_root_squash lets an
+    # attacker root on any client write root-owned files onto that share,
+    # they can plant a payload here and wait for nfsserver's own automation
+    # to execute it as root — no separate credential onto nfsserver needed.
+    - name: Create the placeholder sync-check script (empty, root-owned)
+      ansible.builtin.copy:
+        dest: /srv/share/.sync-check.sh
+        owner: root
+        group: root
+        mode: '0755'
+        content: |
+          #!/bin/bash
+          # Routine sync/consistency check — invoked by cron. Placeholder.
+          exit 0
+        force: false
+      # force: false -> do NOT overwrite if the trainee has already replaced
+      # it during testing/redeploy; only creates it if missing.
+
+    - name: Install the root cron job that runs the sync-check script
+      ansible.builtin.cron:
+        name: "internal sync check"
+        user: root
+        minute: "*"
+        job: "/bin/bash /srv/share/.sync-check.sh >/dev/null 2>&1"
 
     # --- second-hop pivot tooling: ligolo-ng agent (Internal -> Management) --
     - name: Ensure tar is present (needed to unpack the agent)
@@ -529,6 +566,7 @@
           - curl
           - iproute2
           - tar
+          - tmux
         state: present
         update_cache: true
 
