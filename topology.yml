@@ -1,4 +1,4 @@
-name: cr-18-n5b-CTF2-v2
+name: cr-18-n5b-CTF2-v3
 hosts:
   # Attacker — trainee console, DMZ only
   - name: attacker
