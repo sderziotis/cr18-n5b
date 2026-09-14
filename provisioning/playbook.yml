@@ -11,6 +11,9 @@
   hosts: attacker,dmzhost,appserver,nfsserver,mgmthost,router
   become: true
   gather_facts: true
+  vars:
+   ansible_ssh_common_args: '-o ControlMaster=auto -o ControlPersist=600s'
+   ansible_become_timeout: 30
   tasks:
     - name: Disable and mask unattended-upgrades
       ansible.builtin.systemd:
