@@ -2,10 +2,10 @@ name: cr-18-n5b-CTF2-v3
 hosts:
   # Attacker — trainee console, DMZ only
   - name: attacker
-    flavor: standard.small
+    flavor: c1_r4_d40
     base_box:
-      image: ubuntu-noble-x86_64
-      mgmt_user: ubuntu
+      image: kali-2026.1-x86_64
+      mgmt_user: debian
       mgmt_protocol: ssh
     hidden: false
 
