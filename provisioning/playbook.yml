@@ -63,8 +63,8 @@
   gather_facts: true
   roles:
     - role: user-access
-      user_access_username: user
-      user_access_password: 'password123'
+      user_access_username: pentester
+      user_access_password: 'pentester'
       user_access_sudo: true
   tasks:
     # KYPO renames the guest hostname during provisioning but never updates
@@ -705,6 +705,22 @@
     # (The trainee bypasses this by pivoting through the dual-homed hosts,
     #  whose traffic egresses the pivot host's OWN interface on the next tier,
     #  not as router-forwarded transit from the DMZ.)
+
+    # Inbound WAN/broker -> DMZ (the platform's trainee GUI/access broker
+    # reaches "attacker" and "dmzhost" over the DMZ network, through this
+    # router as their gateway). Without this, a brand-new inbound connection
+    # from outside the sandbox matches neither the ESTABLISHED/RELATED rule
+    # nor the Internal->Management rule, so it fell through to the DROP
+    # below - looking exactly like "vm unreachable" for GUI access, even
+    # though Ansible's own provisioning connection is unaffected (it rides
+    # a separate out-of-band management path, not this router). This is
+    # governed by DESTINATION only, so it does not reopen DMZ -> Internal /
+    # DMZ -> Management, which stay blocked by source as before.
+    - name: Allow inbound access into the DMZ (trainee console/GUI/SSH broker)
+      ansible.builtin.iptables:
+        chain: FORWARD
+        destination: 10.10.10.0/24
+        jump: ACCEPT
 
     - name: Drop all other inter-tier forwarding
       ansible.builtin.iptables:
