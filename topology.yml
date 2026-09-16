@@ -16,7 +16,7 @@ hosts:
       image: ubuntu-noble-x86_64
       mgmt_user: ubuntu
       mgmt_protocol: ssh
-    hidden: false
+    hidden: true
 
   # App server — Internal; mounts the misconfigured NFS share (no_root_squash victim)
   - name: appserver
