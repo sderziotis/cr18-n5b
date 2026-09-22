@@ -1,4 +1,12 @@
-- name: user-access
-  src: https://github.com/cyberrangecz/ansible-role-user-access
-  scm: git
-  version: v1.0.0
+---
+# Roles fetched by the sandbox editor.
+roles:
+  - name: user-access
+    src: https://github.com/cyberrangecz/ansible-role-user-access
+    scm: git
+    version: v1.0.0
+
+# ansible.posix.sysctl turns on IP forwarding on the router. Without it
+# nothing routes between the three tiers and no pivot works.
+collections:
+  - name: ansible.posix
