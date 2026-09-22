@@ -116,20 +116,17 @@
         dest: /opt/ligolo/proxy.tar.gz
         mode: '0644'
       register: ligolo_proxy_download
-      failed_when: false
 
     - name: Unpack the proxy
       ansible.builtin.unarchive:
         src: /opt/ligolo/proxy.tar.gz
         dest: /opt/ligolo
         remote_src: true
-      when: ligolo_proxy_download is succeeded
 
     - name: Ensure the proxy binary is executable
       ansible.builtin.file:
         path: /opt/ligolo/proxy
         mode: '0755'
-      failed_when: false
 
     # --- moved here from the final "Disable apt auto-update everywhere" play,
     #     so attacker is fully finished in one contiguous block and never
@@ -296,20 +293,17 @@
         dest: /opt/ligolo/agent.tar.gz
         mode: '0644'
       register: ligolo_agent_download
-      failed_when: false
 
     - name: Unpack the agent
       ansible.builtin.unarchive:
         src: /opt/ligolo/agent.tar.gz
         dest: /opt/ligolo
         remote_src: true
-      when: ligolo_agent_download is succeeded
 
     - name: Ensure the agent binary is executable
       ansible.builtin.file:
         path: /opt/ligolo/agent
         mode: '0755'
-      failed_when: false
 
     # --- A4: local escalation path (narrow, realistic misconfiguration) -----
     # dmzadmin has NO general sudo. It can run exactly one script as root
@@ -468,20 +462,17 @@
         dest: /opt/ligolo/agent.tar.gz
         mode: '0644'
       register: ligolo_agent_download
-      failed_when: false
 
     - name: Unpack the agent
       ansible.builtin.unarchive:
         src: /opt/ligolo/agent.tar.gz
         dest: /opt/ligolo
         remote_src: true
-      when: ligolo_agent_download is succeeded
 
     - name: Ensure the agent binary is executable
       ansible.builtin.file:
         path: /opt/ligolo/agent
         mode: '0755'
-      failed_when: false
 
 
 # ----------------------------------------------------------------------------
