@@ -1,6 +1,6 @@
 ---
 # ============================================================================
-#  cr-18-n5b — Multi-Tier Network Pivoting (Capstone)
+#  cr-18-n5b — Multi-Tier Network Pivoting (Module 5, CTF2)
 # ============================================================================
 
 
@@ -692,11 +692,17 @@
         ctstate: ESTABLISHED,RELATED
         jump: ACCEPT
 
-    # Internal -> Management (the only permitted "deeper" transit)
-    - name: Allow Internal to reach Management
+    # Internal -> Management, from the NFS server only.
+    #
+    # Not the whole 10.10.20.0/24 subnet: dmzhost is also on Internal, and the
+    # trainee gets root on dmzhost at the privilege-escalation level. With the
+    # subnet-wide rule they could relay straight from there to mgmthost:8080 -
+    # an unauthenticated GET - and skip the NFS no_root_squash abuse and the
+    # second pivot, which are the two levels this scenario is built around.
+    - name: Allow the NFS server to reach Management
       ansible.builtin.iptables:
         chain: FORWARD
-        source: 10.10.20.0/24
+        source: 10.10.20.30
         destination: 10.10.30.0/24
         jump: ACCEPT
 
