@@ -3,20 +3,20 @@
 smb_flag:
     type: password
     length: 16
-    prohibited: ['{', '}', '"', "'", ' ', '\\', '/']
+    prohibited: ['{', '}', '"', "'", ' ', '\', '/']
 dmz_root_flag:
     type: password
     length: 16
-    prohibited: ['{', '}', '"', "'", ' ', '\\', '/']
+    prohibited: ['{', '}', '"', "'", ' ', '\', '/']
 pivot_flag:
     type: password
     length: 16
-    prohibited: ['{', '}', '"', "'", ' ', '\\', '/']
+    prohibited: ['{', '}', '"', "'", ' ', '\', '/']
 nfs_flag:
     type: password
     length: 16
-    prohibited: ['{', '}', '"', "'", ' ', '\\', '/']
+    prohibited: ['{', '}', '"', "'", ' ', '\', '/']
 mgmt_flag:
     type: password
     length: 16
-    prohibited: ['{', '}', '"', "'", ' ', '\\', '/']
+    prohibited: ['{', '}', '"', "'", ' ', '\', '/']
