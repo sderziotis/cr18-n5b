@@ -57,25 +57,25 @@
         {
           "title": "Look closer",
           "content": "Something useful is tucked away in those shared files — look closely, because the credentials you need are hidden there.",
-          "hint_penalty": 5,
+          "hint_penalty": 9,
           "order": 2
         },
         {
           "title": "Find the Open Door",
           "content": "Scan the DMZ host for a file-sharing service before trying anything else.\n\nUseful tool: nmap.",
-          "hint_penalty": 2,
+          "hint_penalty": 3,
           "order": 0
         },
         {
           "title": "Walk Through the Share",
           "content": "SMB shares can often be listed and browsed without a password. Try connecting as a guest.\n\nUseful tool: smbclient (the -N flag skips the password prompt).",
-          "hint_penalty": 3,
+          "hint_penalty": 5,
           "order": 1
         }
       ],
       "incorrect_answer_limit": 5,
       "attachments": [],
-      "max_score": 20,
+      "max_score": 40,
       "variant_answers": true,
       "reference_solution": [],
       "mitre_techniques": [
@@ -114,19 +114,19 @@
         {
           "title": "A Script You Can Both Run and Rewrite",
           "content": "If sudo lets you run one specific script as root without a password, check its file permissions. If you can also edit it, replacing its contents gives you root when it runs.\n\n`/opt/netcheck/netcheck.sh` is your target\n",
-          "hint_penalty": 5,
+          "hint_penalty": 6,
           "order": 0
         },
         {
           "title": "Get It Right the First Time",
           "content": "```\necho -e '#!/bin/bash\\nbash -i' > /opt/netcheck/netcheck.sh\nsudo /opt/netcheck/netcheck.sh\nwhoami; id\n```\n\nid must show uid=0(root) with nothing else appended. Do NOT use chmod +s /bin/bash for this — it produces a shell that looks like root but isn't genuinely root, and it will cause confusing failures in the next stage.",
-          "hint_penalty": 10,
+          "hint_penalty": 11,
           "order": 1
         }
       ],
       "incorrect_answer_limit": 5,
       "attachments": [],
-      "max_score": 20,
+      "max_score": 40,
       "variant_answers": true,
       "reference_solution": [],
       "mitre_techniques": [
@@ -154,19 +154,19 @@
         {
           "title": "One Foot in Each Room",
           "content": "Something in the DMZ isn't just visiting — it lives on both networks. Find its second face, then let it carry your traffic where you can't go alone.",
-          "hint_penalty": 3,
+          "hint_penalty": 5,
           "order": 0
         },
         {
           "title": "Two Halves, One Tunnel",
           "content": "Proxy on your box, agent on theirs — both have to be breathing at the same time. Once they shake hands inside ligolo, pick the session and bring it up — that's when the virtual door actually opens on your side. Doors don't route traffic by themselves, though: tell your kernel which subnet should walk through the ligolo interface\n\n`sudo ip route add 10.10.20.0/24 dev ligolo`\n\n— then knock on the app server's door yourself.",
-          "hint_penalty": 7,
+          "hint_penalty": 12,
           "order": 1
         }
       ],
       "incorrect_answer_limit": 6,
       "attachments": [],
-      "max_score": 20,
+      "max_score": 40,
       "variant_answers": true,
       "reference_solution": [],
       "mitre_techniques": [
@@ -214,13 +214,13 @@
         {
           "title": "Full Mount Sequence",
           "content": "From the DMZ host:\n```\nshowmount -e 10.10.20.30\nmkdir -p /mnt/nfs\nmount -t nfs 10.10.20.30:/srv/share /mnt/nfs\ncat /mnt/nfs/.nfs_flag\n```\n",
-          "hint_penalty": 10,
+          "hint_penalty": 12,
           "order": 2
         }
       ],
       "incorrect_answer_limit": 5,
       "attachments": [],
-      "max_score": 20,
+      "max_score": 40,
       "variant_answers": true,
       "reference_solution": [],
       "mitre_techniques": [
@@ -255,25 +255,25 @@
         {
           "title": "Order Matters",
           "content": "The listener has to exist before the second agent tries to dial into it — open it first, then plant the payload. If you write the script before the listener's up, the connection has nowhere to land.",
-          "hint_penalty": 2,
+          "hint_penalty": 4,
           "order": 0
         },
         {
           "title": "Something Hidden Is Watching This Share",
           "content": "Check the mounted share with ls -la, not just ls — the file you're after is hidden (dot-prefixed): .sync-check.sh. Its permissions, ownership, or a changing timestamp are what give it away as something run automatically.",
-          "hint_penalty": 2,
+          "hint_penalty": 4,
           "order": 1
         },
         {
           "title": "If Nothing Shows Up At All",
           "content": "No new session after a couple of minutes usually means the write didn't take, or the file isn't executable. Read the file back (`cat /mnt/nfs/.sync-check.sh`) to confirm your payload actually landed. The execute bit is not what to check - the scheduled job invokes the script as `/bin/bash .sync-check.sh`, and bash only needs to read it.",
-          "hint_penalty": 4,
+          "hint_penalty": 9,
           "order": 2
         }
       ],
       "incorrect_answer_limit": 6,
       "attachments": [],
-      "max_score": 20,
+      "max_score": 40,
       "variant_answers": true,
       "reference_solution": [],
       "mitre_techniques": [
