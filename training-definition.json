@@ -266,7 +266,7 @@
         },
         {
           "title": "If Nothing Shows Up At All",
-          "content": "No new session after a couple of minutes usually means the write didn't take, or the file isn't executable. Read the file back (cat /mnt/nfs/.sync-check.sh) to confirm your payload actually landed, and double-check chmod 755 was applied — cron won't run a script it can't execute.",
+          "content": "No new session after a couple of minutes usually means the write didn't take, or the file isn't executable. Read the file back (`cat /mnt/nfs/.sync-check.sh`) to confirm your payload actually landed. The execute bit is not what to check - the scheduled job invokes the script as `/bin/bash .sync-check.sh`, and bash only needs to read it.",
           "hint_penalty": 4,
           "order": 2
         }
