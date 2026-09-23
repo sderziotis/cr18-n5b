@@ -119,7 +119,7 @@
         },
         {
           "title": "Get It Right the First Time",
-          "content": "```\necho -e '#!/bin/bash\\nbash -i' > /opt/netcheck/netcheck.sh\nsudo /opt/netcheck/netcheck.sh\nwhoami; id\n```\n\nid must show uid=0(root) with nothing else appended. Do NOT use chmod +s /bin/bash for this — it produces a shell that looks like root but isn't genuinely root, and it will cause confusing failures in the next stage.",
+          "content": "Overwrite the script with something that gives you an interactive shell, then run it the way sudo permits.\n\nCheck the result with `id` before you go further: it must show `uid=0(root)` with nothing else appended. Do NOT reach for `chmod +s /bin/bash` here - it produces a shell that looks like root but is not genuinely root, and it will cause confusing failures in the next stage.",
           "hint_penalty": 11,
           "order": 1
         }
@@ -159,7 +159,7 @@
         },
         {
           "title": "Two Halves, One Tunnel",
-          "content": "Proxy on your box, agent on theirs — both have to be breathing at the same time. Once they shake hands inside ligolo, pick the session and bring it up — that's when the virtual door actually opens on your side. Doors don't route traffic by themselves, though: tell your kernel which subnet should walk through the ligolo interface\n\n`sudo ip route add 10.10.20.0/24 dev ligolo`\n\n— then knock on the app server's door yourself.",
+          "content": "Proxy on your machine, agent on theirs, both running at the same time. Once the agent registers, select the session on the proxy console and start it - that is what creates the tunnel interface on your side.\n\nAn interface on its own routes nothing. Add a route for the Internal subnet pointing at it, then reach the app server yourself.",
           "hint_penalty": 12,
           "order": 1
         }
@@ -212,8 +212,8 @@
           "order": 1
         },
         {
-          "title": "Full Mount Sequence",
-          "content": "From the DMZ host:\n```\nshowmount -e 10.10.20.30\nmkdir -p /mnt/nfs\nmount -t nfs 10.10.20.30:/srv/share /mnt/nfs\ncat /mnt/nfs/.nfs_flag\n```\n",
+          "title": "Where To Mount It From",
+          "content": "Mount it from the DMZ host rather than from your assessment machine - the export is scoped to the Internal tier and your machine is not on it.\n\nStandard NFS mount syntax, and create the mountpoint first. Once it is mounted, list the contents and look for a file you would not normally be able to read.",
           "hint_penalty": 12,
           "order": 2
         }
