@@ -74,6 +74,16 @@
     # console failing while hypervisor "console" still works — the display
     # manager / remote-desktop service the GUI broker connects to). Present
     # in the known-working reference module's attacker play; missing here.
+    # The base image ships '127.0.1.1 kali.kali kali'. The platform renames the
+    # host, so that alias is stale, and the task below manages only its own line -
+    # which leaves two 127.0.1.1 entries and tells anyone who reads /etc/hosts that
+    # this is a stock Kali image rather than a company workstation.
+    - name: Drop the base image's leftover 127.0.1.1 alias
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        regexp: '^127\.0\.1\.1\s+kali'
+        state: absent
+
     - name: Ensure /etc/hosts resolves the renamed hostname
       ansible.builtin.lineinfile:
         path: /etc/hosts
