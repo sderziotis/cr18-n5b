@@ -1,5 +1,5 @@
 {
-  "title": "CR-18 / Module 5 / N5b — Lateral Movement & Network Pivoting",
+  "title": "CR-18 / Module 5 / N5b — Intermediate Lateral Movement & Network Pivoting",
   "description": "Break into a DMZ host over a leaked SMB credential, escalate locally, then pivot twice through a segmented three-tier network using ligolo-ng to reach a Management-only service. Lateral Movement & Network Pivoting (CTF2).",
   "prerequisites": [
     "Comfort using a Linux shell and an SSH client",
