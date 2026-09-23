@@ -751,7 +751,7 @@
 #  apt-daily timers so nothing re-triggers apt mid-lab.)
 # ----------------------------------------------------------------------------
 - name: Disable apt auto-update everywhere
-  hosts: dmzhost,appserver,nfsserver,mgmthost,router
+  hosts: dmzhost,appserver,nfsserver,mgmthost,router,man
   become: true
   tasks:
     - name: Disable unattended upgrades in apt periodic config
