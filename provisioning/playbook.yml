@@ -730,18 +730,31 @@
         jump: ACCEPT
 
     # The rule above covers traffic INTO the sandbox. Traffic the guests
-    # initiate outwards was still falling through to the DROP below, because
-    # the WAN is not one of the three tier subnets. That leaves every VM
-    # without a route to the management network - no DNS, no NTP, no apt -
-    # and a desktop session that stalls on name lookups long enough for the
-    # GUI broker to give up, while the hypervisor console is unaffected
-    # because it never touches guest networking. N5a ran into the same class
-    # of problem and left its default policy as ALLOW for the same reason.
-    - name: Allow the tiers to reach the management network
+    # initiate outwards was still falling through to the DROP below: neither
+    # the WAN nor the outside world is one of the three tier subnets. The
+    # platform hands every VM 1.1.1.1/1.0.0.1 as its resolvers, so that left
+    # vma with no DNS at all - 'getent hosts deb.debian.org' just hangs -
+    # and a desktop session that stalls on name lookups for long enough that
+    # the GUI broker gives up. The hypervisor console is unaffected because
+    # it never touches guest networking. N5a hit the same class of problem
+    # and left its default policy as ALLOW for the same reason.
+    #
+    # Both rules are destination-scoped and everything inside 10.10.0.0/16
+    # is left alone, so DMZ -> Internal and DMZ -> Management stay blocked
+    # exactly as before and both pivots are still required.
+    - name: Allow the tiers to reach the WAN segment
       ansible.builtin.iptables:
         chain: FORWARD
         destination: 10.10.99.0/24
         jump: ACCEPT
+
+    # ansible.builtin.iptables cannot express a negated destination, so this
+    # one rule is appended directly. The chain was flushed at the top of this
+    # play, so a plain -A lands it in the right position on every run.
+    - name: Allow the tiers to reach the internet (DNS, NTP, apt)
+      ansible.builtin.command:
+        cmd: iptables -A FORWARD ! -d 10.10.0.0/16 -j ACCEPT
+      changed_when: true
 
     - name: Drop all other inter-tier forwarding
       ansible.builtin.iptables:
