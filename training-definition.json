@@ -1,11 +1,11 @@
 {
   "title": "CR-18 / Module 5 / N5b — Intermediate Lateral Movement & Network Pivoting",
-  "description": "Break into a DMZ host over a leaked SMB credential, escalate locally, then pivot twice through a segmented three-tier network using ligolo-ng to reach a Management-only service. Lateral Movement & Network Pivoting (CTF2).",
+  "description": "Break into a DMZ host over a leaked SMB credential, escalate locally, then pivot twice through a segmented three-tier network using ligolo-ng to reach a Management-only service.",
   "prerequisites": [
     "Comfort using a Linux shell and an SSH client",
     "Basic understanding of TCP/IP networking and firewalls",
     "Familiarity with dictionary/enumeration tooling (nmap, smbclient)",
-    "CR-18-n5a (Lateral Movement & Network Pivoting CTF1), or equivalent hands-on pivoting experience"
+    "N5a (Beginner Lateral Movement & Network Pivoting), or equivalent hands-on pivoting experience"
   ],
   "outcomes": [
     "Demonstrate lateral movement across a segmented DMZ, Internal, and Management architecture",
@@ -300,7 +300,7 @@
       "order": 8,
       "estimated_duration": 0,
       "minimal_possible_solve_time": null,
-      "content": "You've reached the end of CR-18-n5b — Lateral Movement & Network Pivoting (CTF2). You walked the full chain: a leaked file-share credential, a local misconfiguration, and two chained pivots — one an application-layer tunnel, the other a scheduled-task trust abuse — to cross three network tiers the client believed were properly isolated. Head back to the LMS to continue the course."
+      "content": "You've reached the end of **N5b — Intermediate Lateral Movement & Network Pivoting**. You walked the full chain: a leaked file-share credential, a local misconfiguration, and two chained pivots — one an application-layer tunnel, the other a scheduled-task trust abuse — to cross three network tiers the client believed were properly isolated. Head back to the LMS to continue the course."
     }
   ],
   "estimated_duration": 70,
