@@ -729,6 +729,20 @@
         destination: 10.10.10.0/24
         jump: ACCEPT
 
+    # The rule above covers traffic INTO the sandbox. Traffic the guests
+    # initiate outwards was still falling through to the DROP below, because
+    # the WAN is not one of the three tier subnets. That leaves every VM
+    # without a route to the management network - no DNS, no NTP, no apt -
+    # and a desktop session that stalls on name lookups long enough for the
+    # GUI broker to give up, while the hypervisor console is unaffected
+    # because it never touches guest networking. N5a ran into the same class
+    # of problem and left its default policy as ALLOW for the same reason.
+    - name: Allow the tiers to reach the management network
+      ansible.builtin.iptables:
+        chain: FORWARD
+        destination: 10.10.99.0/24
+        jump: ACCEPT
+
     - name: Drop all other inter-tier forwarding
       ansible.builtin.iptables:
         chain: FORWARD
