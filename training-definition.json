@@ -31,7 +31,7 @@
       "estimated_duration": 0,
       "minimal_possible_solve_time": null,
       "passkey": "start",
-      "cloud_content": "In the topology panel on the right, right-click **vma** and select **Open Console**. Log in with username **user** and password **Password123**.\n\nYou will need three shells open at the same time later on - the ligolo proxy console, an SSH session to the DMZ host, and a shell for routing commands. `tmux` is installed for exactly this: run `tmux`, then `Ctrl+b c` opens another window and `Ctrl+b n` cycles between them.\n\nOnce you're connected, submit the passkey **start** to unlock the next level.",
+      "cloud_content": "In the topology panel on the right, right-click **vma** and select **Open GUI In New Window**. Log in with username **user** and password **Password123**.\n\nYou will need three shells open at the same time later on - the ligolo proxy console, an SSH session to the DMZ host, and a shell for routing commands. The desktop gives you that. If you would rather work in one window, `tmux` is installed.\n\n\nOnce you're connected, submit the passkey **start** to unlock the next level.",
       "local_content": "This sandbox has not been validated for local-only deployment."
     },
     {
