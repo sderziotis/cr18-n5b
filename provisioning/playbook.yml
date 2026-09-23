@@ -64,7 +64,7 @@
   roles:
     - role: user-access
       user_access_username: user
-      user_access_password: 'password123'
+      user_access_password: 'Password123'
       user_access_sudo: true
   tasks:
     # KYPO renames the guest hostname during provisioning but never updates
