@@ -8,7 +8,7 @@
 #  Shared prep applied to EVERY machine (all hosts + router)
 # ----------------------------------------------------------------------------
 - name: Common base setup
-  hosts: attacker,dmzhost,appserver,nfsserver,mgmthost,router
+  hosts: vma,dmzhost,appserver,nfsserver,mgmthost,router
   become: true
   gather_facts: true
   vars:
@@ -51,14 +51,14 @@
 #      self-contained (includes its own apt-auto-update disable tasks at
 #      the end) so nothing ever needs to reconnect to this host later in
 #      the run, after a gap, once other hosts/the router have been
-#      provisioned. See ways-of-working notes: attacker (kali box)
+#      provisioned. See ways-of-working notes: vma (kali box)
 #      reliably fails privilege escalation if revisited after a gap late
 #      in the run; keeping all of its work contiguous and early avoids
 #      the issue outright regardless of root cause (stale connection vs.
 #      a time-based auto-shutdown/suspend on this host).
 # ----------------------------------------------------------------------------
-- name: Provision attacker (trainee console)
-  hosts: attacker
+- name: Provision vma (trainee console)
+  hosts: vma
   become: true
   gather_facts: true
   roles:
@@ -73,7 +73,7 @@
     # lookup on startup (PAM/syslog, and — the likely cause of the GUI
     # console failing while hypervisor "console" still works — the display
     # manager / remote-desktop service the GUI broker connects to). Present
-    # in the known-working reference module's attacker play; missing here.
+    # in the known-working reference module's vma play; missing here.
     # The base image ships '127.0.1.1 kali.kali kali'. The platform renames the
     # host, so that alias is stale, and the task below manages only its own line -
     # which leaves two 127.0.1.1 entries and tells anyone who reads /etc/hosts that
@@ -139,7 +139,7 @@
         mode: '0755'
 
     # --- moved here from the final "Disable apt auto-update everywhere" play,
-    #     so attacker is fully finished in one contiguous block and never
+    #     so vma is fully finished in one contiguous block and never
     #     revisited later in the run ---------------------------------------
     - name: Disable unattended upgrades in apt periodic config
       ansible.builtin.copy:
@@ -657,7 +657,7 @@
 #      Internal (10.10.20.0/24) may reach Management, NOT initiate to DMZ.
 #      Management (10.10.30.0/24) is the crown jewels: only reachable from Internal.
 #    The router FORWARD chain is set to default-drop with only the allowed
-#    inter-tier flows permitted. Because the attacker sits in the DMZ, it cannot
+#    inter-tier flows permitted. Because vma sits in the DMZ, it cannot
 #    route to Internal/Management through the router at all -> it MUST pivot
 #    through the dual-homed hosts (dmzhost, then nfsserver).
 # ----------------------------------------------------------------------------
@@ -714,7 +714,7 @@
     #  not as router-forwarded transit from the DMZ.)
 
     # Inbound WAN/broker -> DMZ (the platform's trainee GUI/access broker
-    # reaches "attacker" and "dmzhost" over the DMZ network, through this
+    # reaches "vma" and "dmzhost" over the DMZ network, through this
     # router as their gateway). Without this, a brand-new inbound connection
     # from outside the sandbox matches neither the ESTABLISHED/RELATED rule
     # nor the Internal->Management rule, so it fell through to the DROP
@@ -744,14 +744,14 @@
 
 # ----------------------------------------------------------------------------
 #  Belt-and-suspenders: fully disable apt auto-update/upgrade on the
-#  remaining hosts. (attacker is handled inside its own play above and is
+#  remaining hosts. (vma is handled inside its own play above and is
 #  intentionally NOT in this host list — see the note there.)
 #  (Common base setup already disables the unattended-upgrades service; this
 #  additionally blanks the periodic-update config and stops/masks the
 #  apt-daily timers so nothing re-triggers apt mid-lab.)
 # ----------------------------------------------------------------------------
 - name: Disable apt auto-update everywhere
-  hosts: dmzhost,appserver,nfsserver,mgmthost,router,man
+  hosts: dmzhost,appserver,nfsserver,mgmthost,router
   become: true
   tasks:
     - name: Disable unattended upgrades in apt periodic config
