@@ -1,10 +1,10 @@
-# CR-18 / Module 5 / N5b — Lateral Movement & Network Pivoting (CTF2)
+# CR-18 / Module 5 / N5b — Intermediate Lateral Movement & Network Pivoting
 
 A KYPO cyber range training scenario (CTF-style) covering multi-tier lateral movement and pivoting across a segmented DMZ / Internal / Management network.
 
 ## Overview
 
-This is the follow-up to CTF1, set against a network the client has since segmented into three tiers: a DMZ facing the outside, an Internal tier behind it, and a locked-down Management tier. Trainees start with access to an assessment machine in the DMZ and must work their way inward.
+This is the follow-up to N5a, set against a network the client has since segmented into three tiers: a DMZ facing the outside, an Internal tier behind it, and a locked-down Management tier. Trainees start with access to an assessment machine in the DMZ and must work their way inward.
 
 The exercise chains several distinct techniques into a single attack path: a leaked credential exposed via an anonymous file share, local privilege escalation through a misconfigured sudo rule, an application-layer tunnelling tool used to pivot across network tiers, and abuse of a trust relationship between a misconfigured file share and a scheduled task to gain a second, unsolicited pivot. The exercise is designed to show that network segmentation alone does not stop an attacker who can chain small misconfigurations together.
 
@@ -13,7 +13,7 @@ The exercise chains several distinct techniques into a single attack path: a lea
 - Comfort using a Linux shell and an SSH client
 - Basic understanding of TCP/IP networking and firewalls
 - Familiarity with dictionary/enumeration tooling (e.g. nmap, smbclient)
-- Completion of CR-18-n5a (Lateral Movement & Network Pivoting CTF1), or equivalent hands-on pivoting experience
+- Completion of N5a (Beginner Lateral Movement & Network Pivoting), or equivalent hands-on pivoting experience
 
 ## Learning Outcomes
 
@@ -47,13 +47,13 @@ An in-scenario background level introduces application-layer tunnelling, NFS tru
 
 The environment is segmented into three network tiers, connected by a router and by dual-homed hosts that bridge between them:
 
-- **Attacker machine** — the trainee's entry point; reachable only on the DMZ tier.
-- **DMZ host** — dual-homed across the DMZ and Internal tiers; exposes a file-sharing service and becomes the trainee's first pivot point once compromised.
-- **Application server** — sits on the Internal tier only; not directly reachable from the DMZ.
-- **NFS server** — dual-homed across the Internal and Management tiers; hosts a file share that becomes the bridge into the final tier.
-- **Management host** — the final target, reachable only from the Management tier.
+- **Attacker machine** (`vma`) — the trainee's entry point; reachable only on the DMZ tier.
+- **DMZ host** (`dmzhost`) — dual-homed across the DMZ and Internal tiers; exposes a file-sharing service and becomes the trainee's first pivot point once compromised.
+- **Application server** (`appserver`) — sits on the Internal tier only; not directly reachable from the DMZ.
+- **NFS server** (`nfsserver`) — dual-homed across the Internal and Management tiers; hosts a file share that becomes the bridge into the final tier.
+- **Management host** (`mgmthost`) — the final target, reachable only from the Management tier.
 
-Only the attacker machine is directly visible to the trainee at the start; the remaining hosts are discovered and reached progressively as each tier is breached. The design deliberately keeps each tier's hosts unreachable from outside their tier except through the dual-homed bridge hosts, so that reaching the final target requires chaining pivots rather than any single exploit.
+Only `vma` is directly visible to the trainee at the start; the remaining hosts are discovered and reached progressively as each tier is breached. The design deliberately keeps each tier's hosts unreachable from outside their tier except through the dual-homed bridge hosts, so that reaching the final target requires chaining pivots rather than any single exploit.
 
 ## Skills Practiced
 

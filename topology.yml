@@ -1,7 +1,7 @@
-name: cr-18-n5b-CTF2-v3
+name: cr-18-n5b-intermediate-pivoting
 hosts:
   # Attacker — trainee console, DMZ only
-  - name: attacker
+  - name: vma
     flavor: c2_r4_d30
     base_box:
       image: kali-2026.1-x86_64
@@ -73,8 +73,8 @@ wan:
   cidr: 10.10.99.0/24
 
 net_mappings:
-  # attacker — DMZ only
-  - host: attacker
+  # vma — DMZ only
+  - host: vma
     network: dmz
     ip: 10.10.10.10
 

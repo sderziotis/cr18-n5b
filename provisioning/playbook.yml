@@ -1,6 +1,6 @@
 ---
 # ============================================================================
-#  cr-18-n5b — Multi-Tier Network Pivoting (Capstone)
+#  cr-18-n5b — Intermediate Lateral Movement & Network Pivoting (Module 5)
 # ============================================================================
 
 
@@ -8,7 +8,7 @@
 #  Shared prep applied to EVERY machine (all hosts + router)
 # ----------------------------------------------------------------------------
 - name: Common base setup
-  hosts: attacker,dmzhost,appserver,nfsserver,mgmthost,router
+  hosts: vma,dmzhost,appserver,nfsserver,mgmthost,router
   become: true
   gather_facts: true
   vars:
@@ -51,20 +51,20 @@
 #      self-contained (includes its own apt-auto-update disable tasks at
 #      the end) so nothing ever needs to reconnect to this host later in
 #      the run, after a gap, once other hosts/the router have been
-#      provisioned. See ways-of-working notes: attacker (kali box)
+#      provisioned. See ways-of-working notes: vma (kali box)
 #      reliably fails privilege escalation if revisited after a gap late
 #      in the run; keeping all of its work contiguous and early avoids
 #      the issue outright regardless of root cause (stale connection vs.
 #      a time-based auto-shutdown/suspend on this host).
 # ----------------------------------------------------------------------------
-- name: Provision attacker (trainee console)
-  hosts: attacker
+- name: Provision vma (trainee console)
+  hosts: vma
   become: true
   gather_facts: true
   roles:
     - role: user-access
       user_access_username: user
-      user_access_password: 'password123'
+      user_access_password: 'Password123'
       user_access_sudo: true
   tasks:
     # KYPO renames the guest hostname during provisioning but never updates
@@ -73,7 +73,17 @@
     # lookup on startup (PAM/syslog, and — the likely cause of the GUI
     # console failing while hypervisor "console" still works — the display
     # manager / remote-desktop service the GUI broker connects to). Present
-    # in the known-working reference module's attacker play; missing here.
+    # in the known-working reference module's vma play; missing here.
+    # The base image ships '127.0.1.1 kali.kali kali'. The platform renames the
+    # host, so that alias is stale, and the task below manages only its own line -
+    # which leaves two 127.0.1.1 entries and tells anyone who reads /etc/hosts that
+    # this is a stock Kali image rather than a company workstation.
+    - name: Drop the base image's leftover 127.0.1.1 alias
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        regexp: '^127\.0\.1\.1\s+kali'
+        state: absent
+
     - name: Ensure /etc/hosts resolves the renamed hostname
       ansible.builtin.lineinfile:
         path: /etc/hosts
@@ -116,23 +126,20 @@
         dest: /opt/ligolo/proxy.tar.gz
         mode: '0644'
       register: ligolo_proxy_download
-      failed_when: false
 
     - name: Unpack the proxy
       ansible.builtin.unarchive:
         src: /opt/ligolo/proxy.tar.gz
         dest: /opt/ligolo
         remote_src: true
-      when: ligolo_proxy_download is succeeded
 
     - name: Ensure the proxy binary is executable
       ansible.builtin.file:
         path: /opt/ligolo/proxy
         mode: '0755'
-      failed_when: false
 
     # --- moved here from the final "Disable apt auto-update everywhere" play,
-    #     so attacker is fully finished in one contiguous block and never
+    #     so vma is fully finished in one contiguous block and never
     #     revisited later in the run ---------------------------------------
     - name: Disable unattended upgrades in apt periodic config
       ansible.builtin.copy:
@@ -296,20 +303,17 @@
         dest: /opt/ligolo/agent.tar.gz
         mode: '0644'
       register: ligolo_agent_download
-      failed_when: false
 
     - name: Unpack the agent
       ansible.builtin.unarchive:
         src: /opt/ligolo/agent.tar.gz
         dest: /opt/ligolo
         remote_src: true
-      when: ligolo_agent_download is succeeded
 
     - name: Ensure the agent binary is executable
       ansible.builtin.file:
         path: /opt/ligolo/agent
         mode: '0755'
-      failed_when: false
 
     # --- A4: local escalation path (narrow, realistic misconfiguration) -----
     # dmzadmin has NO general sudo. It can run exactly one script as root
@@ -468,20 +472,17 @@
         dest: /opt/ligolo/agent.tar.gz
         mode: '0644'
       register: ligolo_agent_download
-      failed_when: false
 
     - name: Unpack the agent
       ansible.builtin.unarchive:
         src: /opt/ligolo/agent.tar.gz
         dest: /opt/ligolo
         remote_src: true
-      when: ligolo_agent_download is succeeded
 
     - name: Ensure the agent binary is executable
       ansible.builtin.file:
         path: /opt/ligolo/agent
         mode: '0755'
-      failed_when: false
 
 
 # ----------------------------------------------------------------------------
@@ -656,7 +657,7 @@
 #      Internal (10.10.20.0/24) may reach Management, NOT initiate to DMZ.
 #      Management (10.10.30.0/24) is the crown jewels: only reachable from Internal.
 #    The router FORWARD chain is set to default-drop with only the allowed
-#    inter-tier flows permitted. Because the attacker sits in the DMZ, it cannot
+#    inter-tier flows permitted. Because vma sits in the DMZ, it cannot
 #    route to Internal/Management through the router at all -> it MUST pivot
 #    through the dual-homed hosts (dmzhost, then nfsserver).
 # ----------------------------------------------------------------------------
@@ -692,11 +693,17 @@
         ctstate: ESTABLISHED,RELATED
         jump: ACCEPT
 
-    # Internal -> Management (the only permitted "deeper" transit)
-    - name: Allow Internal to reach Management
+    # Internal -> Management, from the NFS server only.
+    #
+    # Not the whole 10.10.20.0/24 subnet: dmzhost is also on Internal, and the
+    # trainee gets root on dmzhost at the privilege-escalation level. With the
+    # subnet-wide rule they could relay straight from there to mgmthost:8080 -
+    # an unauthenticated GET - and skip the NFS no_root_squash abuse and the
+    # second pivot, which are the two levels this scenario is built around.
+    - name: Allow the NFS server to reach Management
       ansible.builtin.iptables:
         chain: FORWARD
-        source: 10.10.20.0/24
+        source: 10.10.20.30
         destination: 10.10.30.0/24
         jump: ACCEPT
 
@@ -707,7 +714,7 @@
     #  not as router-forwarded transit from the DMZ.)
 
     # Inbound WAN/broker -> DMZ (the platform's trainee GUI/access broker
-    # reaches "attacker" and "dmzhost" over the DMZ network, through this
+    # reaches "vma" and "dmzhost" over the DMZ network, through this
     # router as their gateway). Without this, a brand-new inbound connection
     # from outside the sandbox matches neither the ESTABLISHED/RELATED rule
     # nor the Internal->Management rule, so it fell through to the DROP
@@ -721,6 +728,33 @@
         chain: FORWARD
         destination: 10.10.10.0/24
         jump: ACCEPT
+
+    # The rule above covers traffic INTO the sandbox. Traffic the guests
+    # initiate outwards was still falling through to the DROP below: neither
+    # the WAN nor the outside world is one of the three tier subnets. The
+    # platform hands every VM 1.1.1.1/1.0.0.1 as its resolvers, so that left
+    # vma with no DNS at all - 'getent hosts deb.debian.org' just hangs -
+    # and a desktop session that stalls on name lookups for long enough that
+    # the GUI broker gives up. The hypervisor console is unaffected because
+    # it never touches guest networking. N5a hit the same class of problem
+    # and left its default policy as ALLOW for the same reason.
+    #
+    # Both rules are destination-scoped and everything inside 10.10.0.0/16
+    # is left alone, so DMZ -> Internal and DMZ -> Management stay blocked
+    # exactly as before and both pivots are still required.
+    - name: Allow the tiers to reach the WAN segment
+      ansible.builtin.iptables:
+        chain: FORWARD
+        destination: 10.10.99.0/24
+        jump: ACCEPT
+
+    # ansible.builtin.iptables cannot express a negated destination, so this
+    # one rule is appended directly. The chain was flushed at the top of this
+    # play, so a plain -A lands it in the right position on every run.
+    - name: Allow the tiers to reach the internet (DNS, NTP, apt)
+      ansible.builtin.command:
+        cmd: iptables -A FORWARD ! -d 10.10.0.0/16 -j ACCEPT
+      changed_when: true
 
     - name: Drop all other inter-tier forwarding
       ansible.builtin.iptables:
@@ -737,7 +771,7 @@
 
 # ----------------------------------------------------------------------------
 #  Belt-and-suspenders: fully disable apt auto-update/upgrade on the
-#  remaining hosts. (attacker is handled inside its own play above and is
+#  remaining hosts. (vma is handled inside its own play above and is
 #  intentionally NOT in this host list — see the note there.)
 #  (Common base setup already disables the unattended-upgrades service; this
 #  additionally blanks the periodic-update config and stops/masks the
