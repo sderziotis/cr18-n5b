@@ -84,7 +84,7 @@ net_mappings:
     ip: 10.10.10.20
   - host: dmzhost
     network: internal
-    ip: 10.10.20.2
+    ip: 10.10.20.3
 
   # appserver — Internal only
   - host: appserver
