@@ -157,7 +157,7 @@
 
 
 # ----------------------------------------------------------------------------
-#  DMZ HOST (10.10.10.2 / 10.10.20.2)
+#  DMZ HOST (10.10.10.20 / 10.10.20.2)
 #    * Samba guest share leaks dmzadmin's SSH private key + a note
 #    * SSH accepts that key for dmzadmin
 #    * dual-homed; forwarding tooling present (trainee enables the pivot)
